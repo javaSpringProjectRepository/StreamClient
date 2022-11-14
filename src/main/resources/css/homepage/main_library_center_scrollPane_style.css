@@ -1,0 +1,24 @@
+#game_launch_menu_hBox {
+    -fx-padding: 30;
+}
+
+#game_launch_menu_hBox .button {
+    -fx-border-color: white;
+    -fx-border-radius: 5;
+    -fx-font-size: 20;
+    -fx-alignment: center;
+}
+
+#update_news_vBox {
+    -fx-spacing: 30;
+}
+
+#update_news_flowPane {
+    -fx-background-color: rgba(0, 0, 0, 0.5);
+}
+
+#update_news_vBox .label {
+    -fx-padding: 20;
+    -fx-text-fill: white;
+}
+

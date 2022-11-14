@@ -1,0 +1,22 @@
+TilePane {
+    -fx-padding: 30;
+}
+VBox {
+    -fx-background-color: black;
+    -fx-background-radius: 20;
+    -fx-alignment: center;
+    -fx-padding: 30;
+    -fx-spacing: 30;
+}
+Label {
+    -fx-text-fill: white;
+    -fx-font-size: 20;
+    -fx-font-weight: bold;
+}
+.button {
+    -fx-background-color: lightsalmon;
+    -fx-background-radius: 20;
+    -fx-font-size: 20;
+    -fx-text-fill: black ;
+    -fx-font-weight: bold;
+}

@@ -1,0 +1,45 @@
+VBox {
+    -fx-background-color: linear-gradient(to top, lightsalmon, deeppink, black);
+}
+
+.button {
+    -fx-font-size: 12;
+}
+
+#stream_and_close_menu_hBox {
+    -fx-padding: 5;
+    -fx-alignment: center;
+}
+
+#store_library_menu_hBox .button {
+    -fx-font-size: 20;
+}
+
+.menu-bar {
+    -fx-background-color: transparent;
+}
+
+.menu-bar .label {
+    -fx-text-fill: white;
+}
+
+.menu-bar .label:hover {
+    -fx-text-fill: cyan;
+    -fx-effect: dropshadow(gaussian, cyan, 10, 0.6, 0, 0);
+}
+
+.menu-bar .menu-button:hover {
+    -fx-background-color: transparent;
+}
+
+.menu-bar .menu-button:showing {
+    -fx-background-color: transparent;
+}
+
+.menu-item {
+    -fx-background-color: transparent;
+}
+
+.menu-item .label{
+    -fx-text-fill: black;
+}

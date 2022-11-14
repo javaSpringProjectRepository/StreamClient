@@ -1,0 +1,51 @@
+#main_borderPane {
+    -fx-font-family: Ebrima;
+}
+
+ScrollPane {
+    -fx-padding: 0;
+    -fx-background-color: transparent;
+}
+
+ScrollPane .viewport {
+    -fx-background-color: linear-gradient(to bottom, lightsalmon, deeppink);
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: rgba(0, 0, 0, 0.5);
+}
+
+.scroll-bar:vertical {
+    -fx-background-color: linear-gradient(to bottom, lightsalmon, deeppink);
+    -fx-background-insets: 0;
+}
+
+.button {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+}
+
+.button:hover {
+    -fx-text-fill: cyan;
+    -fx-effect: dropshadow(gaussian, cyan, 10, 0.6, 0, 0);
+}
+
+ToggleButton {
+    -fx-background-color: transparent;
+    -fx-text-fill: white;
+    -fx-font-size: 20;
+}
+
+.toggle-button:selected {
+    -fx-text-fill: cyan;
+    -fx-effect: dropshadow(gaussian, cyan, 10, 0.6, 0, 0);
+}
+
+.toggle-button:hover {
+    -fx-text-fill: cyan;
+    -fx-effect: dropshadow(gaussian, cyan, 10, 0.6, 0, 0);
+}
+FlowPane{
+    -fx-padding: 20;
+    -fx-background-color: linear-gradient(to bottom, lightsalmon, deeppink);
+}

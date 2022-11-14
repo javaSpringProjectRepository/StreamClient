@@ -1,0 +1,17 @@
+VBox {
+    -fx-background-color: black;
+    -fx-alignment: center;
+    -fx-padding: 20;
+    -fx-spacing: 20;
+}
+
+Label {
+    -fx-text-fill: white;
+    -fx-font-size: 15;
+    -fx-alignment: center;
+}
+
+#authentication_text_label {
+    -fx-font-size: 20;
+    -fx-font-weight: bold;
+}
