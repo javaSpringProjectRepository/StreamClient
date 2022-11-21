@@ -12,5 +12,4 @@ public class UpdateNewsFlowPane {
 
     private final FlowPane updateFlow;
     private final LocalDateTime updateDate;
-
 }

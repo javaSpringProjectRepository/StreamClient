@@ -2,8 +2,10 @@ package org.spring.project.application.client.webclient;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
@@ -60,6 +62,9 @@ public class RequestBuilder {
         if (authorized) {
             headersSpec.headers(httpHeaders -> httpHeaders.set(AUTHORIZATION, jwtToken.getToken()));
         }
-        return headersSpec.retrieve();
+        return headersSpec
+                .retrieve()
+                .onStatus(HttpStatus::is4xxClientError, response -> Mono.empty())
+                .onStatus(HttpStatus::is5xxServerError, response -> Mono.empty());
     }
 }

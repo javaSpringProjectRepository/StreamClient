@@ -5,11 +5,14 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Base64;
 import org.spring.project.application.client.service.SceneService;
 import org.spring.project.application.client.undoableEvent.EventType;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
@@ -60,5 +63,13 @@ public class ApplicationUtils {
         }
         log.error("Неверная ссылка");
         return EventType.STORE_EVENT;
+    }
+
+    public void serverErrorMessage(String encodedErrorMessage, StringBuilder errorText) {
+        if (encodedErrorMessage != null) {
+            Base64 base64 = new Base64();
+            String decodedErrorMessage = new String(base64.decode(encodedErrorMessage.getBytes(StandardCharsets.UTF_8)));
+            errorText.append(decodedErrorMessage);
+        }
     }
 }

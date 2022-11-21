@@ -7,7 +7,7 @@ import java.util.Objects;
 
 @Getter
 @AllArgsConstructor
-public class UrlEvent implements UndoableEvent{
+public class UrlEvent implements UndoableEvent {
 
     private final EventType mainType;
     private final EventType type = EventType.URL;

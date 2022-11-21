@@ -15,3 +15,6 @@ Label {
     -fx-font-size: 20;
     -fx-font-weight: bold;
 }
+#authentication_error_list {
+    -fx-font-size: 12;
+}

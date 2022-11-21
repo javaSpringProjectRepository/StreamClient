@@ -21,7 +21,8 @@ public class LibraryListEvent implements UndoableEvent {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         LibraryListEvent that = (LibraryListEvent) o;
-        return mainType == that.mainType && type == that.type && Objects.equals(libraryListElement, that.libraryListElement);
+        return mainType == that.mainType && type == that.type &&
+                Objects.equals(libraryListElement, that.libraryListElement);
     }
 
     @Override

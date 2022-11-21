@@ -41,6 +41,7 @@ public class AuthenticationScene {
         authentication_text_label.setId("authentication_text_label");
         authentication_error_list.setTextAlignment(TextAlignment.CENTER);
         authentication_error_list.setWrapText(true);
+        authentication_error_list.setId("authentication_error_list");
         authentication_vbox.setFillWidth(true);
         AnchorPane.setTopAnchor(authentication_vbox, 0.0);
         AnchorPane.setLeftAnchor(authentication_vbox, 0.0);

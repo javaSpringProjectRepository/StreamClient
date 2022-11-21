@@ -2,13 +2,13 @@ package org.spring.project.application.client.undoableEvent;
 
 public enum EventType {
 
-//    Main type
+    //    Main type
     STORE_EVENT,
     LIBRARY_EVENT,
     COMMUNITY_EVENT,
     PROFILE_EVENT,
 
-//    Type
+    //    Type
     URL,
     LIBRARY_LIST,
     LIBRARY_MAIN_PAGE,

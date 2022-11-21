@@ -15,5 +15,4 @@ public class LibraryListElement {
     @NonNull
     private Game game;
     private Image logo;
-
 }

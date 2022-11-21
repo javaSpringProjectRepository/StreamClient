@@ -1,17 +1,17 @@
 package org.spring.project.application.client.Dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.io.Serializable;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
-@Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Setter
 public class Game implements Serializable {
 
     private String name;
@@ -25,7 +25,8 @@ public class Game implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Game game = (Game) o;
-        return Objects.equals(name, game.name) && Objects.equals(title, game.title) && Objects.equals(gameStartFileName, game.gameStartFileName);
+        return Objects.equals(name, game.name) && Objects.equals(title, game.title) &&
+                Objects.equals(gameStartFileName, game.gameStartFileName);
     }
 
     @Override

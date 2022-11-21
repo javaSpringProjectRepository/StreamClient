@@ -1,7 +1,5 @@
 package org.spring.project.application.client.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.concurrent.Worker;
@@ -30,7 +28,10 @@ import org.spring.project.application.client.undoableEvent.libraryEvent.LibraryL
 import org.spring.project.application.client.undoableEvent.libraryEvent.LibraryMainPageEvent;
 import org.spring.project.application.client.userLibrary.UserLibrary;
 import org.spring.project.application.client.utils.ApplicationUtils;
+import org.spring.project.application.client.webclient.JwtToken;
 import org.spring.project.application.client.webclient.RequestBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
@@ -50,6 +51,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static org.spring.project.application.client.application.FxApplication.primaryStage;
@@ -66,11 +68,12 @@ public class MainSceneService implements SceneService {
     private final ResourceProperties resourceProperties;
     private final AuthenticationSceneService authenticationSceneService;
     private final ApplicationUtils applicationUtils;
-    private final RequestBuilder requestBuilder;
     private final UserLibrary userLibrary;
     private final KeyProperties keyProperties;
     private final GameProperties gameProperties;
     private final UrlProperties urlProperties;
+    private JwtToken jwtToken;
+    private RequestBuilder requestBuilder;
 
     private final List<UndoableEvent> eventList = new ArrayList<>();
     private int activeEvent = -1;
@@ -83,7 +86,8 @@ public class MainSceneService implements SceneService {
     protected void init() {
 
 //        Scene element listeners - start
-        mainScene.getGames_list_listView().getSelectionModel().selectedIndexProperty().addListener((obsVal, oldVal, newVal) -> {
+        mainScene.getGames_list_listView()
+                .getSelectionModel().selectedIndexProperty().addListener((obsVal, oldVal, newVal) -> {
             if (!newVal.equals(-1) && !newVal.equals(oldVal)) {
                 String gameTitle = mainScene.getGames_list_listView()
                         .getSelectionModel()
@@ -112,19 +116,24 @@ public class MainSceneService implements SceneService {
                 oldVal.setSelected(true);
             }
         });
-        Platform.runLater(() -> {
-            mainScene.getWebEngine().getLoadWorker().stateProperty().addListener(
-                    (o, old, state) -> {
-                        if (state != Worker.State.SUCCEEDED) {
-                            return;
-                        }
-                        setEventToLink();
-                    });
-        });
+        Platform.runLater(() -> mainScene.getWebEngine().getLoadWorker().stateProperty().addListener(
+                (o, old, state) -> {
+                    if (state != Worker.State.SUCCEEDED) {
+                        return;
+                    }
+                    setEventToLink();
+                }));
 //        Scene element listeners - end
 
 //        Scene element events - start
-        mainScene.getLogout_menu_item().setOnAction(event -> applicationUtils.changeScene(primaryStage, authenticationSceneService));
+        mainScene.getLogout_menu_item().setOnAction(event -> {
+            jwtToken.getTimerTask().cancel();
+            File profile = new File(folderProperties.getProfileFolder());
+            if (!profile.delete()) {
+                log.error("Не удалось удалить файл профиля");
+            }
+            applicationUtils.changeScene(primaryStage, authenticationSceneService);
+        });
         mainScene.getCollapse_button().setOnAction(event -> primaryStage.setIconified(true));
         mainScene.getExpand_button().setOnAction(event -> primaryStage.setMaximized(!primaryStage.isMaximized()));
         mainScene.getClose_button().setOnAction(event -> {
@@ -152,7 +161,8 @@ public class MainSceneService implements SceneService {
         mainScene.getLibrary_toggleButton().setOnMousePressed(mouseEvent -> {
             if (mainScene.getToggleGroup().getSelectedToggle().equals(mainScene.getLibrary_toggleButton())) {
                 mainScene.getGames_list_listView().getSelectionModel().clearSelection();
-                mainScene.getMain_library_center_anchorPane().getChildren().setAll(mainScene.getLibrary_main_page_flowPane());
+                mainScene.getMain_library_center_anchorPane().getChildren()
+                        .setAll(mainScene.getLibrary_main_page_flowPane());
                 pushEvent(new LibraryMainPageEvent(mainScene.getLibrary_main_page_flowPane()));
             } else {
                 if (libraryLastEvent == null) {
@@ -219,6 +229,18 @@ public class MainSceneService implements SceneService {
         return mainScene.getMain_borderPane();
     }
 
+    @Lazy
+    @Autowired
+    public void setRequestBuilder(RequestBuilder requestBuilder) {
+        this.requestBuilder = requestBuilder;
+    }
+
+    @Lazy
+    @Autowired
+    public void setJwtToken(JwtToken jwtToken) {
+        this.jwtToken = jwtToken;
+    }
+
     private UndoableEvent getLast() {
         return eventList.get(eventList.size() - 1);
     }
@@ -257,10 +279,6 @@ public class MainSceneService implements SceneService {
             mainScene.getMain_borderPane().setCenter(mainScene.getWebView());
         };
     }
-
-//    Доделать поиск в navbar.
-//    Иногда приложение разворачивается с меньшим размером при нажатии на понель задач.
-//    При уменьшении окна navbar сворачивается и все его элементы пропадают.
 
     private void setEventToLink() {
         Document doc = mainScene.getWebEngine().getDocument();
@@ -361,7 +379,7 @@ public class MainSceneService implements SceneService {
                     profileLastEvent = event;
                     break;
                 default:
-                    log.error("Ошибка в методе undoableHandler: неверно указан основной тип URL евента");
+                    log.error("Ошибка в методе undoableHandler: неверно указан основной тип URL события");
                     return;
             }
             pageRequest(event.getMainType(), (String) event.getElement());
@@ -473,7 +491,8 @@ public class MainSceneService implements SceneService {
                                              new ByteArrayInputStream(libraryMainImageBytes)) {
 
                                     image.setImage(new Image(imageStream));
-                                    Platform.runLater(() -> mainScene.getLibrary_main_page_flowPane().getChildren().add(image));
+                                    Platform.runLater(() -> mainScene.getLibrary_main_page_flowPane()
+                                            .getChildren().add(image));
                                     FileUtils.forceMkdir(libraryMainPageImage.getParentFile());
                                     try (FileOutputStream fos = new FileOutputStream(libraryMainPageImage)) {
                                         fos.write(libraryMainImageBytes);
@@ -523,53 +542,58 @@ public class MainSceneService implements SceneService {
     private void buildLibraryContent() {
 
         Platform.runLater(() -> mainScene.getGames_list_listView().setItems(FXCollections.observableArrayList(
-                userLibrary.getGames().stream().map(game -> {
-                    LibraryListElement element = new LibraryListElement(game);
-                    File libraryLogoImage = new File(folderProperties.getResourcesFolder() +
-                            game.getName() +
-                            File.separator +
-                            resourceProperties.getLibraryLogo() +
-                            File.separator +
-                            resourceProperties.getLibraryLogo() + resourceProperties.getImageFormat());
-                    try (FileInputStream fis = new FileInputStream(libraryLogoImage)) {
-                        element.setLogo(new Image(fis));
-                        setCellFactory();
-                    } catch (IOException e) {
-                        log.error("Не удалось загрузить логотип библиотеки для игры {} из файла", game.getTitle());
-                        DataBufferUtils.
-                                join(requestBuilder.builderRequest(urlProperties.getGetMethod(),
-                                        urlProperties.getGamesUrl() + "/" + game.getName() +
-                                                urlProperties.getLibraryLogo(), null, null, true)
-                                        .bodyToFlux(DataBuffer.class))
-                                .map(applicationUtils::fluxDataBufferToByteArray)
-                                .onErrorContinue((throwable, o) -> {
-                                    log.error("Не удалось загрузить логотип библиотеки для игры {}",
-                                            game.getTitle());
-                                    setCellFactory();
-                                })
-                                .subscribe(libraryLogoBytes -> {
-                                    try (ByteArrayInputStream imageStream =
-                                                 new ByteArrayInputStream(libraryLogoBytes)) {
+                userLibrary
+                        .getGames()
+                        .stream()
+                        .map(game -> {
+                            LibraryListElement element = new LibraryListElement(game);
+                            File libraryLogoImage = new File(folderProperties.getResourcesFolder() +
+                                    game.getName() +
+                                    File.separator +
+                                    resourceProperties.getLibraryLogo() +
+                                    File.separator +
+                                    resourceProperties.getLibraryLogo() + resourceProperties.getImageFormat());
+                            try (FileInputStream fis = new FileInputStream(libraryLogoImage)) {
+                                element.setLogo(new Image(fis));
+                                setCellFactory();
+                            } catch (IOException e) {
+                                log.error("Не удалось загрузить логотип библиотеки для игры {} из файла", game.getTitle());
+                                DataBufferUtils.
+                                        join(requestBuilder.builderRequest(urlProperties.getGetMethod(),
+                                                urlProperties.getGamesUrl() + "/" + game.getName() +
+                                                        urlProperties.getLibraryLogo(), null, null, true)
+                                                .bodyToFlux(DataBuffer.class))
+                                        .map(applicationUtils::fluxDataBufferToByteArray)
+                                        .onErrorContinue((throwable, o) -> {
+                                            log.error("Не удалось загрузить логотип библиотеки для игры {}",
+                                                    game.getTitle());
+                                            setCellFactory();
+                                        })
+                                        .subscribe(libraryLogoBytes -> {
+                                            try (ByteArrayInputStream imageStream =
+                                                         new ByteArrayInputStream(libraryLogoBytes)) {
 
-                                        element.setLogo(new Image(imageStream));
-                                        FileUtils.forceMkdir(libraryLogoImage.getParentFile());
-                                        try (FileOutputStream fos = new FileOutputStream(libraryLogoImage)) {
-                                            fos.write(libraryLogoBytes);
-                                        }
-                                    } catch (IOException ex) {
-                                        log.error("Не удалось сохранить логотип библиотеки для игры {} в файл",
-                                                game.getTitle());
-                                    }
-                                    setCellFactory();
-                                });
-                    }
-                    return element;
-                }).collect(Collectors.toList()))));
+                                                element.setLogo(new Image(imageStream));
+                                                FileUtils.forceMkdir(libraryLogoImage.getParentFile());
+                                                try (FileOutputStream fos = new FileOutputStream(libraryLogoImage)) {
+                                                    fos.write(libraryLogoBytes);
+                                                }
+                                            } catch (IOException ex) {
+                                                log.error("Не удалось сохранить логотип библиотеки для игры {} в файл",
+                                                        game.getTitle());
+                                            }
+                                            setCellFactory();
+                                        });
+                            }
+                            return element;
+                        }).collect(Collectors.toList()))));
     }
 
     private void getNews(Game game) {
-        if (mainScene.getMain_library_center_anchorPane().getChildren().contains(mainScene.getLibrary_main_page_flowPane())) {
-            mainScene.getMain_library_center_anchorPane().getChildren().setAll(mainScene.getMain_library_center_scrollPane());
+        if (mainScene.getMain_library_center_anchorPane().getChildren()
+                .contains(mainScene.getLibrary_main_page_flowPane())) {
+            mainScene.getMain_library_center_anchorPane().getChildren()
+                    .setAll(mainScene.getMain_library_center_scrollPane());
         }
         mainScene.getUpdate_news_vBox().getChildren().clear();
 
@@ -645,62 +669,64 @@ public class MainSceneService implements SceneService {
                 null, null, true)
                 .bodyToMono(new ParameterizedTypeReference<Set<GameUpdateNewsDto>>() {
                 })
-                .onErrorContinue((throwable, o) -> {
-                    log.error("Не удалось загрузить список новостей обновлений для игры {}", game.getTitle());
-                })
-                .subscribe(gameUpdateNews -> {
-                    Flux.fromIterable(gameUpdateNews.stream().map(gameUpdateNewsDto ->
-                            DataBufferUtils
-                                    .join(requestBuilder.builderRequest(urlProperties.getPostMethod(),
-                                            urlProperties.getGamesUrl() + "/" + game.getName() +
-                                                    urlProperties.getNewsUpdateImage(), null, gameUpdateNewsDto, true)
-                                            .bodyToFlux(DataBuffer.class))
-                                    .map(applicationUtils::fluxDataBufferToByteArray)
-                                    .onErrorContinue((throwable, o) -> log.error("Не удалось загрузить новости обновлений для игры {}",
-                                            game.getTitle()))
-                                    .map(patchImageBytes -> {
+                .onErrorContinue((throwable, o) ->
+                        log.error("Не удалось загрузить список новостей обновлений для игры {}", game.getTitle()))
+                .subscribe(gameUpdateNews -> Flux.fromIterable(gameUpdateNews.stream().map(gameUpdateNewsDto ->
+                        DataBufferUtils
+                                .join(requestBuilder.builderRequest(urlProperties.getPostMethod(),
+                                        urlProperties.getGamesUrl() + "/" + game.getName() +
+                                                urlProperties.getNewsUpdateImage(), null, gameUpdateNewsDto, true)
+                                        .bodyToFlux(DataBuffer.class))
+                                .map(applicationUtils::fluxDataBufferToByteArray)
+                                .onErrorContinue((throwable, o) ->
+                                        log.error("Не удалось загрузить новости обновлений для игры {}",
+                                        game.getTitle()))
+                                .map(patchImageBytes -> {
 
-                                        ImageView update_image = new ImageView();
-                                        update_image.setFitWidth(300);
-                                        update_image.setFitHeight(200);
+                                    ImageView update_image = new ImageView();
+                                    update_image.setFitWidth(300);
+                                    update_image.setFitHeight(200);
 
-                                        Label updateText = new Label(gameUpdateNewsDto.getUpdateText());
-                                        updateText.setWrapText(true);
-                                        updateText.setPrefWidth(300);
-                                        updateText.setPrefHeight(190);
+                                    Label updateText = new Label(gameUpdateNewsDto.getUpdateText());
+                                    updateText.setWrapText(true);
+                                    updateText.setPrefWidth(300);
+                                    updateText.setPrefHeight(190);
 
-                                        Label date = new Label(gameUpdateNewsDto.getUpdateTime().format(DateTimeFormatter.ofPattern("HH:mm dd-MM-yyyy")));
-                                        date.setWrapText(true);
-                                        date.setPrefWidth(300);
-                                        date.setPrefHeight(10);
+                                    Label date = new Label(gameUpdateNewsDto
+                                            .getUpdateTime().format(DateTimeFormatter.ofPattern("HH:mm dd-MM-yyyy")));
+                                    date.setWrapText(true);
+                                    date.setPrefWidth(300);
+                                    date.setPrefHeight(10);
 
-                                        VBox updateInfo = new VBox(date, updateText);
+                                    VBox updateInfo = new VBox(date, updateText);
 
-                                        try (ByteArrayInputStream byteArrayInputStream =
-                                                     new ByteArrayInputStream(patchImageBytes)) {
-                                            update_image.setImage(new Image(byteArrayInputStream));
-                                        } catch (IOException exception) {
-                                            log.error("Не удалось загрузить картинку обновления");
-                                        }
-                                        FlowPane flowPane = new FlowPane(update_image, updateInfo);
-                                        return new UpdateNewsFlowPane(flowPane, gameUpdateNewsDto.getUpdateTime());
-                                    })).collect(Collectors.toList())
-                    )
-                            .flatMap(flowPaneMono -> flowPaneMono.map(flowPane -> flowPane)).collectList()
-                            .subscribe(updateNewsFlowPanes -> {
-                                updateNewsFlowPanes.sort(Comparator.comparing(UpdateNewsFlowPane::getUpdateDate).reversed());
-                                for (UpdateNewsFlowPane newsFlowPane : updateNewsFlowPanes) {
-                                    Platform.runLater(() -> mainScene.getUpdate_news_vBox().getChildren().add(newsFlowPane.getUpdateFlow()));
-                                }
-                            });
-                });
+                                    try (ByteArrayInputStream byteArrayInputStream =
+                                                 new ByteArrayInputStream(patchImageBytes)) {
+                                        update_image.setImage(new Image(byteArrayInputStream));
+                                    } catch (IOException exception) {
+                                        log.error("Не удалось загрузить картинку обновления");
+                                    }
+                                    FlowPane flowPane = new FlowPane(update_image, updateInfo);
+                                    return new UpdateNewsFlowPane(flowPane, gameUpdateNewsDto.getUpdateTime());
+                                })).collect(Collectors.toList())
+                )
+                        .flatMap(flowPaneMono -> flowPaneMono.map(flowPane -> flowPane)).collectList()
+                        .subscribe(updateNewsFlowPanes -> {
+                            updateNewsFlowPanes.sort(Comparator.comparing(UpdateNewsFlowPane::getUpdateDate).reversed());
+                            for (UpdateNewsFlowPane newsFlowPane : updateNewsFlowPanes) {
+                                Platform.runLater(() ->
+                                        mainScene.getUpdate_news_vBox().getChildren().add(newsFlowPane.getUpdateFlow()));
+                            }
+                        }));
     }
 
     private void downloadGameFiles(Game game) {
 
-        var ref = new Object() {
+        mainScene.getGame_launch_button().setDisable(true);
+
+        var lambdaValues = new Object() {
             long gameSize = 0;
-            long downloaded = 0;
+            final AtomicLong downloaded = new AtomicLong();
             long percentDownloaded = 0;
             long alreadyDownloaded = 0;
         };
@@ -708,31 +734,27 @@ public class MainSceneService implements SceneService {
         String gameDirectoryName = folderProperties.getGamesFolder() + game.getName();
         File gameDirectory = new File(gameDirectoryName);
         if (gameDirectory.exists()) {
-            ref.downloaded = FileUtils.sizeOfDirectory(gameDirectory);
+            lambdaValues.downloaded.set(FileUtils.sizeOfDirectory(gameDirectory));
+        } else {
+            lambdaValues.downloaded.set(0);
         }
 
         requestBuilder.builderRequest(urlProperties.getGetMethod(),
                 urlProperties.getGamesUrl() + "/" + game.getName() + urlProperties.getGameFilesList(),
                 null, null, true)
-                .toEntity(new ParameterizedTypeReference<String>() {
+                .toEntity(new ParameterizedTypeReference<List<String>>() {
                 })
-                .onErrorContinue((throwable, o) -> log.error("Не удалось получить список файлов игры {}", game.getTitle()))
+                .onErrorContinue((throwable, o) ->
+                        log.error("Не удалось получить список файлов игры {}", game.getTitle()))
                 .subscribe(responseEntity -> {
                     if (responseEntity.getStatusCode().equals(OK)) {
                         String size = responseEntity.getHeaders().getFirst(keyProperties.getGameSize());
                         if (size != null) {
-                            ref.gameSize = Long.parseLong(size);
+                            lambdaValues.gameSize = Long.parseLong(size);
                         }
                         if (responseEntity.getBody() != null) {
 
-                            List<String> gameFilesInfo;
-                            try {
-                                gameFilesInfo = new ObjectMapper().readValue(responseEntity.getBody(), new TypeReference<>() {
-                                });
-                            } catch (IOException e) {
-                                log.error("Не удалось преобразовать список файлов игры {}", game.getTitle());
-                                return;
-                            }
+                            List<String> gameFilesInfo = responseEntity.getBody();
                             for (String filePath : gameFilesInfo) {
                                 File file = new File(gameDirectoryName + filePath);
                                 try {
@@ -759,14 +781,15 @@ public class MainSceneService implements SceneService {
                                         @Override
                                         public void write(byte[] b, int off, int len) throws IOException {
                                             super.write(b, off, len);
-                                            if (ref.gameSize != 0) {
-                                                ref.downloaded += len;
-                                                ref.percentDownloaded = (ref.downloaded * 100) / ref.gameSize;
-                                                if (ref.alreadyDownloaded != ref.percentDownloaded &&
-                                                        ref.percentDownloaded < 100) {
-                                                    log.info("Загружено " + ref.percentDownloaded + "%");
+                                            if (lambdaValues.gameSize != 0) {
+                                                lambdaValues.downloaded.addAndGet(len);
+                                                lambdaValues.percentDownloaded =
+                                                        (lambdaValues.downloaded.get() * 100) / lambdaValues.gameSize;
+                                                if (lambdaValues.alreadyDownloaded != lambdaValues.percentDownloaded &&
+                                                        lambdaValues.percentDownloaded < 100) {
+                                                    log.info("Загружено " + lambdaValues.percentDownloaded + "%");
                                                 }
-                                                ref.alreadyDownloaded = ref.percentDownloaded;
+                                                lambdaValues.alreadyDownloaded = lambdaValues.percentDownloaded;
                                             }
                                         }
                                     };
@@ -774,9 +797,11 @@ public class MainSceneService implements SceneService {
                                     DataBufferUtils
                                             .write(requestBuilder.builderRequest(urlProperties.getPostMethod(),
                                                     urlProperties.getGamesUrl() + "/" + game.getName() +
-                                                            urlProperties.getDownloadGameFile(), null, gameFileDto, true)
+                                                            urlProperties.getDownloadGameFile(),
+                                                    null, gameFileDto, true)
                                                     .bodyToFlux(DataBuffer.class), fos)
-                                            .onErrorContinue((throwable, o) -> log.error("Не удалось загрузить файл {} игры {}",
+                                            .onErrorContinue((throwable, o) ->
+                                                    log.error("Не удалось загрузить файл {} игры {}",
                                                     file.getName(), gameFileDto.getGameName()))
                                             .map(DataBufferUtils::release)
                                             .then()
@@ -788,8 +813,9 @@ public class MainSceneService implements SceneService {
                                                     log.error("Не удалось закрыть поток записи к файлу {}",
                                                             gameFileDto.getFilePath());
                                                 }
-                                                if (ref.downloaded == ref.gameSize) {
+                                                if (lambdaValues.downloaded.get() == lambdaValues.gameSize) {
                                                     log.info("Загружено 100%");
+                                                    mainScene.getGame_launch_button().setDisable(false);
                                                     gameStartEvent(game);
                                                 }
                                                 if (file.length() == 0) {
