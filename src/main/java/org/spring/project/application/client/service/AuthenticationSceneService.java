@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.io.BufferedWriter;
@@ -35,7 +36,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CREATED;
 
 @Slf4j
-@Component
+@Service
 @RequiredArgsConstructor
 public class AuthenticationSceneService implements SceneService {
 

@@ -36,6 +36,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -59,7 +60,7 @@ import static org.springframework.http.HttpStatus.FOUND;
 import static org.springframework.http.HttpStatus.OK;
 
 @Slf4j
-@Component
+@Service
 @RequiredArgsConstructor
 public class MainSceneService implements SceneService {
 
@@ -268,7 +269,7 @@ public class MainSceneService implements SceneService {
                     .onErrorContinue((throwable, o) -> Platform.runLater(() -> mainScene.getWebEngine().loadContent(
                             getDefaultConnectionExceptionPage(url))))
                     .subscribe(page -> {
-                        if (dataAttribute != null && dataAttribute.equals("buy")) {
+                        if (dataAttribute.equals("buy")) {
                             getUserLibrary();
                         }
                         Platform.runLater(() ->
